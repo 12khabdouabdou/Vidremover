@@ -13,10 +13,15 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.VideoFile
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -24,7 +29,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.vidremover.presentation.ui.screens.HomeScreen
+import com.vidremover.presentation.ui.screens.ReviewScreen
+import com.vidremover.presentation.ui.screens.ScanScreen
 import com.vidremover.presentation.ui.theme.VidRemoverTheme
+import com.vidremover.presentation.viewmodel.VideoViewModel
 
 class MainActivity : ComponentActivity() {
 
@@ -47,34 +60,12 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            text = "VidRemover",
-                            style = MaterialTheme.typography.headlineLarge,
-                            color = MaterialTheme.colorScheme.primary
+                    if (hasPermission) {
+                        MainNavigation()
+                    } else {
+                        PermissionScreen(
+                            onRequestPermission = { requestPermissions() }
                         )
-                        
-                        Spacer(modifier = Modifier.height(16.dp))
-                        
-                        Text(
-                            text = if (hasPermission) "Ready to scan" else "Permission required",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        
-                        Spacer(modifier = Modifier.height(24.dp))
-                        
-                        if (!hasPermission) {
-                            Button(onClick = { requestPermissions() }) {
-                                Text("Grant Permission")
-                            }
-                        }
                     }
                 }
             }
@@ -97,5 +88,84 @@ class MainActivity : ComponentActivity() {
 
     private fun requestPermissions() {
         permissionLauncher.launch(getRequiredPermissions().toTypedArray())
+    }
+}
+
+@Composable
+fun MainNavigation() {
+    val navController = rememberNavController()
+    val viewModel: VideoViewModel = viewModel()
+
+    NavHost(
+        navController = navController,
+        startDestination = "home"
+    ) {
+        composable("home") {
+            HomeScreen(
+                onNavigateToScan = { navController.navigate("scan") },
+                onNavigateToReview = { navController.navigate("review") },
+                viewModel = viewModel
+            )
+        }
+
+        composable("scan") {
+            ScanScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToReview = { 
+                    navController.navigate("review") {
+                        popUpTo("home")
+                    }
+                },
+                viewModel = viewModel
+            )
+        }
+
+        composable("review") {
+            ReviewScreen(
+                onNavigateBack = { navController.popBackStack() },
+                viewModel = viewModel
+            )
+        }
+    }
+}
+
+@Composable
+fun PermissionScreen(onRequestPermission: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.VideoFile,
+            contentDescription = null,
+            modifier = Modifier.size(80.dp),
+            tint = MaterialTheme.colorScheme.primary
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Text(
+            text = "Permission Required",
+            style = MaterialTheme.typography.headlineMedium,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Text(
+            text = "VidRemover needs access to your videos to scan for duplicates. Your videos remain on your device and are never uploaded.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 16.dp)
+        )
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        Button(onClick = onRequestPermission) {
+            Text("Grant Permission")
+        }
     }
 }
