@@ -1,7 +1,9 @@
 package com.vidremover.presentation.ui.screens
 
+import android.graphics.Bitmap
+import android.media.MediaMetadataRetriever
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -15,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -23,14 +26,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.vidremover.domain.model.DuplicateGroup
 import com.vidremover.domain.model.Video
 import com.vidremover.presentation.viewmodel.VideoViewModel
-import android.graphics.BitmapFactory
-import android.media.MediaMetadataRetriever
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items as lazyItems
-import androidx.compose.runtime.remember
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -196,7 +191,7 @@ private fun VideoItem(
     onToggle: () -> Unit
 ) {
     val thumbnail = remember(video.uri) {
-        loadThumbnail(video.uri)
+        loadThumbnail(video.uri)?.asImageBitmap()
     }
 
     Card(
