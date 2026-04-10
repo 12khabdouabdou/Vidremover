@@ -57,19 +57,37 @@ jobs:
           echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> $GITHUB_PATH
           echo "$ANDROID_HOME/platform-tools" >> $GITHUB_PATH
 
-      - name: Accept licenses and install components
-        run: |
-          yes | sdkmanager --licenses || true
-          sdkmanager "platforms;android-34" "build-tools;34.0.0" "platform-tools"
+    - name: Accept licenses and install components
+      run: |
+        # Ensure ANDROID_HOME is set
+        export ANDROID_HOME=${ANDROID_HOME:-$HOME/android-sdk}
+        export ANDROID_SDK_ROOT=$ANDROID_HOME
+        
+        # Setup PATH for sdkmanager
+        export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
+        
+        echo "Using ANDROID_HOME=$ANDROID_HOME"
+        which sdkmanager || echo "sdkmanager location: $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+        
+        yes | sdkmanager --licenses || true
+        sdkmanager "platforms;android-34" "build-tools;34.0.0" "platform-tools"
 
       - name: Grant execute permission
         run: chmod +x gradlew
 
-      - name: Build with Gradle
-        run: |
+    - name: Build with Gradle
+      run: |
+        # Ensure ANDROID_HOME is set (prefer $HOME/android-sdk over system SDK)
+        if [ -d "$HOME/android-sdk" ]; then
+          export ANDROID_HOME=$HOME/android-sdk
+        else
           export ANDROID_HOME=${ANDROID_HOME:-/usr/local/lib/android/sdk}
-          export ANDROID_SDK_ROOT=$ANDROID_HOME
-          ./gradlew assembleDebug --no-daemon --stacktrace
+        fi
+        export ANDROID_SDK_ROOT=$ANDROID_HOME
+        export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
+        
+        echo "Building with ANDROID_HOME=$ANDROID_HOME"
+        ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Find and verify APK
         run: |
