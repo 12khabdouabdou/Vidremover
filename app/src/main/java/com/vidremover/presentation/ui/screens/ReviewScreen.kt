@@ -515,14 +515,16 @@ private fun VideoItem(
     }
 }
 
-private suspend fun loadThumbnail(context: Context, uriString: String): Bitmap? = kotlinx.coroutines.Dispatchers.IO {
-    try {
-        val retriever = MediaMetadataRetriever()
-        retriever.setDataSource(context, Uri.parse(uriString))
-        val bitmap = retriever.getFrameAtTime(1_000_000)
-        retriever.release()
-        bitmap
-    } catch (e: Exception) {
-        null
+private suspend fun loadThumbnail(context: Context, uriString: String): Bitmap? {
+    return kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        try {
+            val retriever = MediaMetadataRetriever()
+            retriever.setDataSource(context, Uri.parse(uriString))
+            val bitmap = retriever.getFrameAtTime(1_000_000)
+            retriever.release()
+            bitmap
+        } catch (e: Exception) {
+            null
+        }
     }
 }
