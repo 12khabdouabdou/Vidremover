@@ -102,18 +102,28 @@ fun ReviewScreen(
                     titleContentColor = MaterialTheme.colorScheme.onPrimary,
                     navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
                 ),
-                actions = {
-                    if (selectedVideoIds.isNotEmpty()) {
-                        TextButton(
-                            onClick = { showClearDialog = true },
-                            colors = ButtonDefaults.textButtonColors(
-                                contentColor = MaterialTheme.colorScheme.onPrimary
-                            )
-                        ) {
-                            Text("Clear Selection")
-                        }
-                    }
+        actions = {
+            if (duplicateGroups.isNotEmpty()) {
+                TextButton(
+                    onClick = { viewModel.selectAllDuplicates() },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                ) {
+                    Text("Select All")
                 }
+            }
+            if (selectedVideoIds.isNotEmpty()) {
+                TextButton(
+                    onClick = { showClearDialog = true },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                ) {
+                    Text("Clear")
+                }
+            }
+        }
             )
         },
         bottomBar = {
