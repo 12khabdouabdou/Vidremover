@@ -12,6 +12,7 @@ import com.vidremover.presentation.viewmodel.AppTheme
 import com.vidremover.presentation.viewmodel.UserSettings
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -116,7 +117,7 @@ class SettingsDataStore @Inject constructor(
                     DetectionMode.BOTH
                 }
             } ?: DetectionMode.BOTH
-        }.map { it }.collect { it }
+        }.first()
     }
 
     /**
@@ -127,7 +128,7 @@ class SettingsDataStore @Inject constructor(
     suspend fun getPHashThreshold(): Float {
         return context.dataStore.data.map { preferences ->
             preferences[PHASH_THRESHOLD] ?: 0.9f
-        }.map { it }.collect { it }
+        }.first()
     }
 
     /**
@@ -144,6 +145,6 @@ class SettingsDataStore @Inject constructor(
                     AppTheme.SYSTEM
                 }
             } ?: AppTheme.SYSTEM
-        }.map { it }.collect { it }
+        }.first()
     }
 }

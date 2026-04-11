@@ -1,25 +1,32 @@
 package com.vidremover.presentation.viewmodel
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.vidremover.data.repository.VideoRepository
 import com.vidremover.domain.model.DuplicateGroup
 import com.vidremover.domain.model.ScanProgress
 import com.vidremover.domain.model.Video
 import com.vidremover.domain.model.VideoFolder
+import com.vidremover.domain.repository.VideoRepository
+import com.vidremover.domain.usecase.ComputeMD5HashUseCase
+import com.vidremover.domain.usecase.ComputePHashUseCase
+import com.vidremover.domain.usecase.DetectDuplicatesUseCase
 import com.vidremover.domain.usecase.DetectionMode
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.security.MessageDigest
+import javax.inject.Inject
 
-class VideoViewModel(application: Application) : AndroidViewModel(application) {
-
-    private val repository = VideoRepository(application)
+@HiltViewModel
+class VideoViewModel @Inject constructor(
+    private val repository: VideoRepository,
+    private val detectDuplicatesUseCase: DetectDuplicatesUseCase,
+    private val computeMD5HashUseCase: ComputeMD5HashUseCase,
+    private val computePHashUseCase: ComputePHashUseCase
+) : ViewModel() {
 
     private val _videos = MutableStateFlow<List<Video>>(emptyList())
     val videos: StateFlow<List<Video>> = _videos.asStateFlow()
@@ -174,9 +181,9 @@ class VideoViewModel(application: Application) : AndroidViewModel(application) {
         videos.forEachIndexed { index, video ->
             onProgress(index, videos.size, video.name)
 
-            try {
-                val hash = repository.computepHash(video)
-                groups.getOrPut(hash) { mutableListOf() }.add(video)
+        try {
+                    val hash = computePHashUseCase(video)
+                    groups.getOrPut(hash) { mutableListOf() }.add(video)
             } catch (e: Exception) {
                 // Skip unhashable videos
             }
