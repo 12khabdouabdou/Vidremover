@@ -4,8 +4,12 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ContentPaste
-import androidx.compose.material.icons.filled.Rate
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -151,7 +155,7 @@ fun ScanScreen(
                                 .height(56.dp),
                             shape = RoundedCornerShape(12.dp)
                         ) {
-                            Icon(Icons.Default.Rate, contentDescription = null)
+                            Icon(Icons.Default.Star, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("Review Duplicates", style = MaterialTheme.typography.titleMedium)
                         }

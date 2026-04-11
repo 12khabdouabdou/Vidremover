@@ -15,8 +15,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-
-import com.vidremover.domain.usecase.DetectionMode
+import java.security.MessageDigest
 
 class VideoViewModel(application: Application) : AndroidViewModel(application) {
 
