@@ -2,7 +2,7 @@ package com.vidremover.domain.usecase
 
 import com.vidremover.domain.model.DuplicateGroup
 import com.vidremover.domain.model.Video
-import com.vidremover.domain.repository.VideoRepository
+import com.vidremover.data.repository.VideoRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import javax.inject.Inject
