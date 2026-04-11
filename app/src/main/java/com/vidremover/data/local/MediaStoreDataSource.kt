@@ -307,5 +307,4 @@ class MediaStoreDataSource @Inject constructor(
         }.sortedByDescending { it.imageCount }
     }
 }
-    }
 }
