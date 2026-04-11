@@ -1,14 +1,17 @@
 package com.vidremover.presentation.ui.screens
 
 import android.app.Activity
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.IntentSender
 import android.graphics.Bitmap
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
@@ -63,7 +66,7 @@ fun ReviewScreen(
     val scope = rememberCoroutineScope()
 
     val deleteLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
+        contract = ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
             scope.launch {
@@ -231,9 +234,9 @@ fun ReviewScreen(
                     
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                         val uris = videosToDelete.map { Uri.parse(it.uri) }
-                        val intent = MediaStore.createDeleteRequest(context.contentResolver, uris)
+                        val pendingIntent = MediaStore.createDeleteRequest(context.contentResolver, uris)
                         pendingDeleteVideos = videosToDelete
-                        deleteLauncher.launch(intent)
+                        deleteLauncher.launch(IntentSenderRequest.Builder(pendingIntent.intentSender).build())
                     } else {
                         scope.launch {
                             viewModel.deleteSelectedVideos()

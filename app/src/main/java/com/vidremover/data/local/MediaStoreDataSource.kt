@@ -166,9 +166,9 @@ class MediaStoreDataSource @Inject constructor(
         }
     }
 
-    fun createDeleteRequestIntent(uris: List<Uri>): Intent? {
+    fun createDeleteRequestIntent(uris: List<Uri>): android.app.PendingIntent? {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            MediaStore.createDeleteRequest(context, uris)
+            MediaStore.createDeleteRequest(contentResolver, uris)
         } else {
             null
         }
