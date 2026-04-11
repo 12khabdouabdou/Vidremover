@@ -40,9 +40,8 @@ import javax.inject.Singleton
  * ```
  */
 @Singleton
-class ComputePHashUseCase @Inject constructor(
+class ComputePHashUseCase @Inject constructor() {
     private val hashSimilarityThreshold: Float = DEFAULT_SIMILARITY_THRESHOLD
-) {
 
     companion object {
         private const val TAG = "ComputePHashUseCase"
