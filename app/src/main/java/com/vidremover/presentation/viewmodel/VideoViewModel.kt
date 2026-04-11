@@ -329,7 +329,7 @@ class VideoViewModel @Inject constructor(
                     digest.update(buffer, 0, bytesRead)
                 }
             }
-            digest.digest().joinToString("") { byte -> "%02x".format(byte) }
+            digest.digest().joinToString("") { byte -> "x02x".format(byte) }
         } catch (e: Exception) {
             image.id.toString()
         }
