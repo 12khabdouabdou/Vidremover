@@ -14,7 +14,7 @@ import com.vidremover.R
 import com.vidremover.domain.model.DuplicateGroup
 import com.vidremover.domain.model.ScanProgress
 import com.vidremover.domain.model.Video
-import com.vidremover.domain.repository.VideoRepository
+import com.vidremover.data.repository.VideoRepository
 import com.vidremover.domain.usecase.DetectDuplicatesUseCase
 import com.vidremover.presentation.ui.MainActivity
 import kotlinx.coroutines.*
