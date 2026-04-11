@@ -12,6 +12,7 @@ import com.vidremover.domain.model.VideoFolder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.security.MessageDigest
 
 class VideoRepository(private val context: Context) {
 
@@ -174,7 +175,7 @@ class VideoRepository(private val context: Context) {
                 }
             }
 
-            digest.digest().joinToString("") { "%02x".format(it) }
+            digest.digest().joinToString("") { byte -> "%02x".format(byte) }
         } catch (e: Exception) {
             video.id.toString()
         }

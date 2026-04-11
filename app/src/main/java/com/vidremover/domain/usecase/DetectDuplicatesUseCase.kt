@@ -5,7 +5,7 @@ import com.vidremover.domain.model.Video
 import com.vidremover.data.repository.VideoRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
-import javax.inject.Inject
+import kotlinx.coroutines.flow.flow
 
 enum class DetectionMode {
     MD5_ONLY,
@@ -13,7 +13,7 @@ enum class DetectionMode {
     BOTH
 }
 
-class DetectDuplicatesUseCase @Inject constructor(
+class DetectDuplicatesUseCase(
     private val repository: VideoRepository
 ) {
     operator fun invoke(
@@ -28,64 +28,73 @@ class DetectDuplicatesUseCase @Inject constructor(
         }
     }
 
-    private fun detectMD5Only(videos: List<Video>): Flow<List<DuplicateGroup>> {
-        return kotlinx.coroutines.flow.flow {
-            val hashMap = mutableMapOf<String, MutableList<Video>>()
-            
-            videos.forEach { video ->
-                val hash = repository.computeMD5Hash(video)
-                hashMap.getOrPut(hash) { mutableListOf() }.add(video)
-            }
-            
-            val groups = hashMap.filter { it.value.size > 1 }
-                .map { (hash, videos) -> 
-                    DuplicateGroup(
-                        id = hash,
-                        videos = videos,
-                        similarity = 1.0f
-                    )
-                }
-            emit(groups)
-        }
-    }
+    private fun detectMD5Only(videos: List<Video>): Flow<List<DuplicateGroup>> = flow {
+        val hashMap = mutableMapOf<String, MutableList<Video>>()
 
-    private fun detectPHashOnly(videos: List<Video>, threshold: Float): Flow<List<DuplicateGroup>> {
-        return kotlinx.coroutines.flow.flow {
-            val hashMap = mutableMapOf<String, MutableList<Video>>()
-            
-            videos.forEach { video ->
-                try {
-                    val hash = repository.computepHash(video)
-                    hashMap.getOrPut(hash) { mutableListOf() }.add(video)
-                } catch (e: Exception) {
-                    // Skip videos that can't be hashed
-                }
-            }
-            
-            val groups = hashMap.filter { it.value.size > 1 }
-                .map { (hash, videos) ->
-                    DuplicateGroup(
-                        id = hash,
-                        videos = videos,
-                        similarity = threshold
-                    )
-                }
-            emit(groups)
+        videos.forEach { video ->
+            val hash = repository.computeMD5Hash(video)
+            hashMap.getOrPut(hash) { mutableListOf() }.add(video)
         }
-    }
 
-    private fun detectBoth(videos: List<Video>, threshold: Float): Flow<List<DuplicateGroup>> {
-        return combine(detectMD5Only(videos), detectPHashOnly(videos, threshold)) { md5Groups, pHashGroups ->
-            val allGroups = (md5Groups + pHashGroups).groupBy { it.id }
-            allGroups.values.map { groups ->
-                val bestSimilarity = groups.maxOfOrNull { it.similarity } ?: 0f
-                val allVideos = groups.flatMap { it.videos }.distinctBy { it.id }
+        val groups = hashMap.filter { it.value.size > 1 }
+            .map { (hash, videos) ->
                 DuplicateGroup(
-                    id = groups.first().id,
-                    videos = allVideos,
-                    similarity = bestSimilarity
+                    id = hash,
+                    videos = videos,
+                    similarity = 1.0f
                 )
-            }.filter { it.videos.size > 1 }
+            }
+        emit(groups)
+    }
+
+    private fun detectPHashOnly(videos: List<Video>, threshold: Float): Flow<List<DuplicateGroup>> = flow {
+        val hashMap = mutableMapOf<String, MutableList<Video>>()
+
+        videos.forEach { video ->
+            try {
+                val hash = repository.computepHash(video)
+                hashMap.getOrPut(hash) { mutableListOf() }.add(video)
+            } catch (e: Exception) {
+                // Skip videos that can't be hashed
+            }
         }
+
+        val groups = hashMap.filter { it.value.size > 1 }
+            .map { (hash, videos) ->
+                DuplicateGroup(
+                    id = hash,
+                    videos = videos,
+                    similarity = threshold
+                )
+            }
+        emit(groups)
+    }
+
+    private fun detectBoth(videos: List<Video>, threshold: Float): Flow<List<DuplicateGroup>> = flow {
+        val md5Groups = mutableListOf<DuplicateGroup>()
+        val phashGroups = mutableListOf<DuplicateGroup>()
+
+        // First detect MD5 duplicates
+        val hashMap = mutableMapOf<String, MutableList<Video>>()
+        videos.forEach { video ->
+            val hash = repository.computeMD5Hash(video)
+            hashMap.getOrPut(hash) { mutableListOf() }.add(video)
+        }
+        md5Groups.addAll(hashMap.filter { it.value.size > 1 }
+            .map { (hash, vids) -> DuplicateGroup(id = "md5_$hash", videos = vids, similarity = 1.0f) })
+
+        // Then detect pHash duplicates
+        val pHashMap = mutableMapOf<String, MutableList<Video>>()
+        videos.forEach { video ->
+            try {
+                val hash = repository.computepHash(video)
+                pHashMap.getOrPut(hash) { mutableListOf() }.add(video)
+            } catch (e: Exception) {}
+        }
+        phashGroups.addAll(pHashMap.filter { it.value.size > 1 }
+            .map { (hash, vids) -> DuplicateGroup(id = "phash_$hash", videos = vids, similarity = threshold) })
+
+        // Combine all groups
+        emit(md5Groups + phashGroups)
     }
 }

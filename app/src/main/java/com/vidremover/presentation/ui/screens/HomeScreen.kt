@@ -81,7 +81,7 @@ fun HomeScreen(
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Icon(
-                        imageVector = Icons.Default.PhoneAndroid,
+                        imageVector = Icons.Default.Smartphone,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary
                     )
@@ -119,7 +119,7 @@ fun HomeScreen(
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Icon(
-                        imageVector = Icons.Default.Folder,
+                        imageVector = Icons.Default.FolderOpen,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary
                     )

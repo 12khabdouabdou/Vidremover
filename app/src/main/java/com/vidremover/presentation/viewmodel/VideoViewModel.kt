@@ -104,7 +104,7 @@ class VideoViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun setDetectionMode(mode: DetectionMode) {
+    fun setDetectionMode(mode: com.vidremover.domain.usecase.DetectionMode) {
         _detectionMode.value = mode
     }
 

@@ -139,7 +139,7 @@ fun PermissionScreen(onRequestPermission: () -> Unit) {
         verticalArrangement = Arrangement.Center
     ) {
         Icon(
-            imageVector = Icons.Default.VideoFile,
+            imageVector = Icons.Default.VideoLibrary,
             contentDescription = null,
             modifier = Modifier.size(80.dp),
             tint = MaterialTheme.colorScheme.primary

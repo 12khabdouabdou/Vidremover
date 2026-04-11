@@ -80,7 +80,7 @@ fun ScanScreen(
                 Spacer(modifier = Modifier.height(32.dp))
 
                 LinearProgressIndicator(
-                    progress = { progress },
+                    progress = progress,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(12.dp),
@@ -120,7 +120,7 @@ fun ScanScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
-                                imageVector = Icons.Default.ContentCopy,
+                                imageVector = Icons.Default.ContentPaste,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.secondary
                             )
@@ -150,7 +150,7 @@ fun ScanScreen(
                                 .height(56.dp),
                             shape = RoundedCornerShape(12.dp)
                         ) {
-                            Icon(Icons.Default.RateReview, contentDescription = null)
+                            Icon(Icons.Default.Rate, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("Review Duplicates", style = MaterialTheme.typography.titleMedium)
                         }

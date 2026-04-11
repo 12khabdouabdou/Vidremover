@@ -122,7 +122,7 @@ fun ReviewScreen(
                         enabled = currentGroupIndex > 0,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Icon(Icons.Default.ChevronLeft, contentDescription = null)
+                        Icon(Icons.Default.KeyboardArrowLeft, contentDescription = null)
                         Text("Previous")
                     }
 
@@ -139,7 +139,7 @@ fun ReviewScreen(
                         modifier = Modifier.weight(1f)
                     ) {
                         Text("Next")
-                        Icon(Icons.Default.ChevronRight, contentDescription = null)
+                        Icon(Icons.Default.KeyboardArrowRight, contentDescription = null)
                     }
                 }
             }
@@ -229,7 +229,7 @@ private fun VideoItem(
                     )
                 } else {
                     Icon(
-                        imageVector = Icons.Default.VideoFile,
+                        imageVector = Icons.Default.VideoLibrary,
                         contentDescription = null,
                         modifier = Modifier
                             .size(40.dp)
