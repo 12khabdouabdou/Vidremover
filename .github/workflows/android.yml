@@ -24,15 +24,31 @@ jobs:
     - name: Setup Android SDK
       uses: android-actions/setup-android@v2
 
+    - name: Show Android SDK info
+      run: |
+        echo "ANDROID_HOME: $ANDROID_HOME"
+        echo "SDK platforms:"
+        ls -la $ANDROID_HOME/platforms/ 2>/dev/null || echo "No platforms"
+        echo "Build tools:"
+        ls -la $ANDROID_HOME/build-tools/ 2>/dev/null || echo "No build-tools"
+
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
 
     - name: Build Debug APK
-      run: ./gradlew assembleDebug
+      run: ./gradlew assembleDebug --stacktrace 2>&1 | tee build.log
+
+    - name: Show build errors if any
+      if: failure()
+      run: |
+        echo "=== Build Log Tail ==="
+        tail -100 build.log
+        echo "=== Gradle Outputs ==="
+        ls -la app/build/outputs/apk/debug/ 2>/dev/null || echo "No APK generated"
 
     - name: Upload APK Artifact
+      if: success()
       uses: actions/upload-artifact@v4
       with:
         name: app-debug-apk
         path: app/build/outputs/apk/debug/app-debug.apk
-        if-no-files-found: warn
