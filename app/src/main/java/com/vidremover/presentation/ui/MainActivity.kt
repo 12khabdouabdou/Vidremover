@@ -83,7 +83,7 @@ class MainActivity : ComponentActivity() {
 
     private fun getRequiredPermissions(): List<String> {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            listOf(Manifest.permission.READ_MEDIA_VIDEO)
+            listOf(Manifest.permission.READ_MEDIA_VIDEO, Manifest.permission.READ_MEDIA_IMAGES)
         } else {
             listOf(Manifest.permission.READ_EXTERNAL_STORAGE)
         }
@@ -161,7 +161,7 @@ fun PermissionScreen(onRequestPermission: () -> Unit) {
         Spacer(modifier = Modifier.height(12.dp))
 
         Text(
-            text = "VidRemover needs access to your videos to scan for duplicates. Your videos remain on your device and are never uploaded.",
+            text = "VidRemover needs access to your videos and images to scan for duplicates. Your media remains on your device and is never uploaded.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 16.dp)

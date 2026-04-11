@@ -21,7 +21,10 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.vidremover.domain.model.VideoFolder
 import com.vidremover.domain.usecase.DetectionMode
+import com.vidremover.domain.usecase.MediaType
 import com.vidremover.presentation.viewmodel.HomeViewModel
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.VideoFile
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,6 +37,7 @@ fun HomeScreen(
     val scanAll by viewModel.scanAll.collectAsState()
     val selectedFolders by viewModel.selectedFolders.collectAsState()
     val detectionMode by viewModel.detectionMode.collectAsState()
+    val mediaType by viewModel.mediaType.collectAsState()
 
     LaunchedEffect(Unit) {
         viewModel.loadFolders()
@@ -74,21 +78,94 @@ fun HomeScreen(
             }
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp)
-        ) {
-            Text(
-                text = "Scan Options",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(padding)
+            .padding(16.dp)
+    ) {
+        Text(
+            text = "Media Type",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold
+        )
 
-            Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Card(
+                modifier = Modifier.weight(1f),
+                colors = CardDefaults.cardColors(
+                    containerColor = if (mediaType == MediaType.VIDEOS) MaterialTheme.colorScheme.primaryContainer
+                    else MaterialTheme.colorScheme.surface
+                ),
+                onClick = { viewModel.setMediaType(MediaType.VIDEOS) }
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RadioButton(
+                        selected = mediaType == MediaType.VIDEOS,
+                        onClick = { viewModel.setMediaType(MediaType.VIDEOS) }
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Icon(
+                        imageVector = Icons.Default.VideoFile,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Videos", fontWeight = FontWeight.Medium)
+                }
+            }
 
             Card(
+                modifier = Modifier.weight(1f),
+                colors = CardDefaults.cardColors(
+                    containerColor = if (mediaType == MediaType.IMAGES) MaterialTheme.colorScheme.primaryContainer
+                    else MaterialTheme.colorScheme.surface
+                ),
+                onClick = { viewModel.setMediaType(MediaType.IMAGES) }
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RadioButton(
+                        selected = mediaType == MediaType.IMAGES,
+                        onClick = { viewModel.setMediaType(MediaType.IMAGES) }
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Icon(
+                        imageVector = Icons.Default.Image,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Images", fontWeight = FontWeight.Medium)
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(
+            text = "Scan Options",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
                     containerColor = if (scanAll) MaterialTheme.colorScheme.primaryContainer

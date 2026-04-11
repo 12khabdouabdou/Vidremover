@@ -9,6 +9,8 @@ import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
 import androidx.activity.result.ActivityResultLauncher
+import com.vidremover.data.model.ImageDto
+import com.vidremover.data.model.ImageFolderDto
 import com.vidremover.data.model.VideoDto
 import com.vidremover.data.model.VideoFolderDto
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -176,11 +178,134 @@ class MediaStoreDataSource @Inject constructor(
 
     fun hasReadMediaPermission(): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            context.checkSelfPermission(android.Manifest.permission.READ_MEDIA_VIDEO) ==
-                    android.content.pm.PackageManager.PERMISSION_GRANTED
+            context.checkSelfPermission(android.Manifest.permission.READ_MEDIA_VIDEO) == android.content.pm.PackageManager.PERMISSION_GRANTED &&
+            context.checkSelfPermission(android.Manifest.permission.READ_MEDIA_IMAGES) == android.content.pm.PackageManager.PERMISSION_GRANTED
         } else {
-            context.checkSelfPermission(android.Manifest.permission.READ_EXTERNAL_STORAGE) ==
-                    android.content.pm.PackageManager.PERMISSION_GRANTED
+            context.checkSelfPermission(android.Manifest.permission.READ_EXTERNAL_STORAGE) == android.content.pm.PackageManager.PERMISSION_GRANTED
         }
+    }
+
+    fun hasReadVideoPermission(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context.checkSelfPermission(android.Manifest.permission.READ_MEDIA_VIDEO) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        } else {
+            context.checkSelfPermission(android.Manifest.permission.READ_EXTERNAL_STORAGE) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        }
+    }
+
+    fun hasReadImagePermission(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context.checkSelfPermission(android.Manifest.permission.READ_MEDIA_IMAGES) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        } else {
+            context.checkSelfPermission(android.Manifest.permission.READ_EXTERNAL_STORAGE) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        }
+    }
+
+    suspend fun queryImages(): List<ImageDto> = withContext(Dispatchers.IO) {
+        val images = mutableListOf<ImageDto>()
+
+        val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
+        } else {
+            MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+        }
+
+        val projection = arrayOf(
+            MediaStore.Images.Media._ID,
+            MediaStore.Images.Media.DISPLAY_NAME,
+            MediaStore.Images.Media.DATA,
+            MediaStore.Images.Media.SIZE,
+            MediaStore.Images.Media.DATE_ADDED,
+            MediaStore.Images.Media.MIME_TYPE,
+            MediaStore.Images.Media.BUCKET_DISPLAY_NAME,
+            MediaStore.Images.Media.WIDTH,
+            MediaStore.Images.Media.HEIGHT
+        )
+
+        val sortOrder = "${MediaStore.Images.Media.DATE_ADDED} DESC"
+
+        contentResolver.query(
+            collection,
+            projection,
+            null,
+            null,
+            sortOrder
+        )?.use { cursor ->
+            val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID)
+            val nameColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DISPLAY_NAME)
+            val pathColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA)
+            val sizeColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.SIZE)
+            val dateColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATE_ADDED)
+            val mimeColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.MIME_TYPE)
+            val bucketColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.BUCKET_DISPLAY_NAME)
+            val widthColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.WIDTH)
+            val heightColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.HEIGHT)
+
+            while (cursor.moveToNext()) {
+                val id = cursor.getLong(idColumn)
+                val name = cursor.getString(nameColumn) ?: "Unknown"
+                val path = cursor.getString(pathColumn) ?: ""
+                val size = cursor.getLong(sizeColumn)
+                val dateAdded = cursor.getLong(dateColumn)
+                val mimeType = cursor.getString(mimeColumn) ?: "image/*"
+                val folderName = cursor.getString(bucketColumn) ?: "Unknown"
+                val width = cursor.getInt(widthColumn)
+                val height = cursor.getInt(heightColumn)
+
+                val contentUri = ContentUris.withAppendedId(
+                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                    id
+                )
+
+                images.add(
+                    ImageDto(
+                        id = id,
+                        uri = contentUri.toString(),
+                        name = name,
+                        path = path,
+                        size = size,
+                        dateAdded = dateAdded,
+                        mimeType = mimeType,
+                        folderName = folderName,
+                        width = width,
+                        height = height
+                    )
+                )
+            }
+        }
+
+        images
+    }
+
+    suspend fun queryImagesFromFolders(folderPaths: List<String>): List<ImageDto> = withContext(Dispatchers.IO) {
+        if (folderPaths.isEmpty()) {
+            return@withContext queryImages()
+        }
+        val allImages = queryImages()
+        allImages.filter { image ->
+            folderPaths.any { folder -> image.path.startsWith(folder) }
+        }
+    }
+
+    suspend fun queryImageFolders(): List<ImageFolderDto> = withContext(Dispatchers.IO) {
+        val folderMap = mutableMapOf<String, MutableList<ImageDto>>()
+
+        val images = queryImages()
+        images.forEach { image ->
+            val folderPath = image.path.substringBeforeLast("/", "")
+            if (folderPath.isNotEmpty()) {
+                folderMap.getOrPut(folderPath) { mutableListOf() }.add(image)
+            }
+        }
+
+        folderMap.map { (path, imagesInFolder) ->
+            ImageFolderDto(
+                name = imagesInFolder.firstOrNull()?.folderName ?: "Unknown",
+                path = path,
+                imageCount = imagesInFolder.size
+            )
+        }.sortedByDescending { it.imageCount }
+    }
+}
     }
 }

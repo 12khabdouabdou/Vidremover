@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.vidremover.domain.model.VideoFolder
 import com.vidremover.domain.repository.VideoRepository
 import com.vidremover.domain.usecase.DetectionMode
+import com.vidremover.domain.usecase.MediaType
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -35,6 +36,9 @@ class HomeViewModel @Inject constructor(
 
     private val _detectionMode = MutableStateFlow(DetectionMode.BOTH)
     val detectionMode: StateFlow<DetectionMode> = _detectionMode.asStateFlow()
+
+    private val _mediaType = MutableStateFlow(MediaType.VIDEOS)
+    val mediaType: StateFlow<MediaType> = _mediaType.asStateFlow()
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -120,12 +124,11 @@ class HomeViewModel @Inject constructor(
         duplicateStateHolder.setDetectionMode(mode)
     }
 
-    /**
-     * Gets the list of folder paths to scan.
-     * Returns empty list if scanAll is true.
-     *
-     * @return List of folder paths to scan
-     */
+    fun setMediaType(type: MediaType) {
+        _mediaType.value = type
+        duplicateStateHolder.setMediaType(type)
+    }
+
     fun getFoldersToScan(): List<String> {
         return if (_scanAll.value) {
             emptyList()
