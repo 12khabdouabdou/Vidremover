@@ -38,6 +38,6 @@ data class ScanProgress(
 
 data class DuplicateGroup(
     val id: String,
-    val videos: List ,
+    val videos: List<MediaItem>,
     val similarity: Float
 )

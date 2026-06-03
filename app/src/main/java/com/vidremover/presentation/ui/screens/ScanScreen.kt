@@ -41,7 +41,7 @@ fun ScanScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Scanning Videos") },
+                title = { Text("Scanning Media") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, "Back")
@@ -137,7 +137,7 @@ fun ScanScreen(
                                 )
                                 val totalDuplicates = duplicateGroups.sumOf { it.videos.size - 1 }
                                 Text(
-                                    "$totalDuplicates duplicate videos",
+                                    "$totalDuplicates duplicate items",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -190,7 +190,7 @@ fun ScanScreen(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = "Tap the button below to start scanning for duplicate videos",
+                    text = "Tap the button below to start scanning for duplicate media",
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.onSurfaceVariant

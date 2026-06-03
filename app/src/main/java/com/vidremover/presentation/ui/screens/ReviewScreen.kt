@@ -25,6 +25,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -61,7 +62,7 @@ fun ReviewScreen(
 
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showClearDialog by remember { mutableStateOf(false) }
-    var pendingDeleteVideos by remember { mutableStateOf<List<Video>>(emptyList()) }
+    var pendingDeleteItems by remember { mutableStateOf<List<com.vidremover.domain.model.MediaItem>>(emptyList()) }
 
     val scope = rememberCoroutineScope()
 
@@ -73,7 +74,7 @@ fun ReviewScreen(
                 viewModel.deleteSelectedVideos()
             }
         }
-        pendingDeleteVideos = emptyList()
+        pendingDeleteItems = emptyList()
     }
 
     val selectedSize by remember(selectedVideoIds, duplicateGroups) {
@@ -207,10 +208,10 @@ fun ReviewScreen(
         if (showDeleteDialog) {
             AlertDialog(
                 onDismissRequest = { showDeleteDialog = false },
-                title = { Text("Delete Selected Videos") },
+                title = { Text("Delete Selected Items") },
                 text = {
                     Column {
-                        Text("You are about to delete ${selectedVideoIds.size} videos.")
+                        Text("You are about to delete ${selectedVideoIds.size} items.")
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = "This will free up ${viewModel.formatSize(selectedSize)}.",
@@ -235,7 +236,7 @@ fun ReviewScreen(
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                         val uris = videosToDelete.map { Uri.parse(it.uri) }
                         val pendingIntent = MediaStore.createDeleteRequest(context.contentResolver, uris)
-                        pendingDeleteVideos = videosToDelete
+                        pendingDeleteItems = videosToDelete
                         deleteLauncher.launch(IntentSenderRequest.Builder(pendingIntent.intentSender).build())
                     } else {
                         scope.launch {
@@ -263,7 +264,7 @@ fun ReviewScreen(
             AlertDialog(
                 onDismissRequest = { showClearDialog = false },
                 title = { Text("Clear Selection") },
-                text = { Text("Deselect all ${selectedVideoIds.size} videos?") },
+                text = { Text("Deselect all ${selectedVideoIds.size} items?") },
                 confirmButton = {
                     TextButton(onClick = {
                         viewModel.clearSelection()
@@ -370,7 +371,7 @@ private fun DuplicateGroupCard(
                         fontWeight = FontWeight.Medium
                     )
                     Text(
-                        text = "${group.videos.size} videos • Similarity: ${(group.similarity * 100).toInt()}%",
+                        text = "${group.videos.size} items • Similarity: ${(group.similarity * 100).toInt()}%",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -401,21 +402,122 @@ private fun DuplicateGroupCard(
                                 Spacer(modifier = Modifier.width(8.dp))
                                 TextButton(onClick = onDeselectAllInGroup) {
                                     Text("Deselect All")
-                                }
+}
+
+@Composable
+private fun ImageItem(
+    image: com.vidremover.domain.model.Image,
+    isSelected: Boolean,
+    formatSize: (Long) -> String,
+    onToggle: () -> Unit
+) {
+    val context = LocalContext.current
+    
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected) MaterialTheme.colorScheme.errorContainer
+            else MaterialTheme.colorScheme.surface
+        ),
+        border = if (isSelected) {
+            CardDefaults.outlinedCardBorder().copy(
+                brush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.error)
+            )
+        } else null
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(80.dp, 60.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .clickable {
+                        val intent = Intent(Intent.ACTION_VIEW).apply {
+                            setDataAndType(Uri.parse(image.uri), "image/*")
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        }
+                        context.startActivity(Intent.createChooser(intent, "View image"))
+                    }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Image,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(40.dp)
+                        .align(Alignment.Center),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable { onToggle() }
+            ) {
+                Text(
+                    text = image.name,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Row {
+                    Text(
+                        text = formatSize(image.size),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = image.folderName,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+
+            Checkbox(
+                checked = isSelected,
+                onCheckedChange = { onToggle() }
+            )
+        }
+    }
+}
                             }
                         }
                     }
 
-            // Video Items
-            group.videos.forEach { video ->
-                VideoItem(
-                    video = video,
-                    isSelected = selectedVideoIds.contains(video.id),
-                    formatSize = formatSize,
-                    formatDuration = formatDuration,
-                    onToggle = { onToggleVideoSelection(video.id) },
-                    onPlay = { /* Handled inside VideoItem */ }
-                )
+            // Media Items
+            group.videos.forEach { item ->
+                if (item is com.vidremover.domain.model.Video) {
+                    VideoItem(
+                        video = item,
+                        isSelected = selectedVideoIds.contains(item.id),
+                        formatSize = formatSize,
+                        formatDuration = formatDuration,
+                        onToggle = { onToggleVideoSelection(item.id) },
+                        onPlay = { /* Handled inside VideoItem */ }
+                    )
+                } else if (item is com.vidremover.domain.model.Image) {
+                    ImageItem(
+                        image = item,
+                        isSelected = selectedVideoIds.contains(item.id),
+                        formatSize = formatSize,
+                        onToggle = { onToggleVideoSelection(item.id) }
+                    )
+                }
             }
                 }
             }

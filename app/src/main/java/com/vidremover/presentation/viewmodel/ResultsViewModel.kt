@@ -140,7 +140,11 @@ class ResultsViewModel @Inject constructor(
 
         try {
             videosToDelete.forEach { video ->
-                val success = repository.deleteVideo(video)
+                val success = when (video) {
+                    is com.vidremover.domain.model.Video -> repository.deleteVideo(video)
+                    is com.vidremover.domain.model.Image -> repository.deleteImage(video)
+                    else -> false
+                }
                 if (success) {
                     deletedCount++
                     freedBytes += video.size
