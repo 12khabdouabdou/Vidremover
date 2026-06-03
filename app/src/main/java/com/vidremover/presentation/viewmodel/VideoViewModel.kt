@@ -30,8 +30,8 @@ class VideoViewModel @Inject constructor(
     private val duplicateStateHolder: DuplicateStateHolder
 ) : ViewModel() {
 
-    private val _videos = MutableStateFlow<List >(emptyList())
-    val videos: StateFlow<List > = _videos.asStateFlow()
+    private val _videos = MutableStateFlow<List<Video>>(emptyList())
+    val videos: StateFlow<List<Video>> = _videos.asStateFlow()
 
     private val _images = MutableStateFlow<List<Image>>(emptyList())
     val images: StateFlow<List<Image>> = _images.asStateFlow()
@@ -147,7 +147,7 @@ class VideoViewModel @Inject constructor(
     }
 
     private suspend fun findVideoDuplicates(
-        videos: List ,
+        videos: List<Video>,
         mode: DetectionMode,
         onProgress: (Int, Int, String) -> Unit
     ): List<DuplicateGroup> = withContext(Dispatchers.Default) {
@@ -159,10 +159,10 @@ class VideoViewModel @Inject constructor(
     }
 
     private suspend fun findVideoMD5Duplicates(
-        videos: List ,
+        videos: List<Video>,
         onProgress: (Int, Int, String) -> Unit
     ): List<DuplicateGroup> = withContext(Dispatchers.Default) {
-        val groups = mutableMapOf<String, MutableList >()
+        val groups = mutableMapOf<String, MutableList<Video>>()
 
         videos.forEachIndexed { index, video ->
             onProgress(index, videos.size, video.name)
@@ -234,7 +234,7 @@ class VideoViewModel @Inject constructor(
     }
 
     private suspend fun findVideoBothDuplicates(
-        videos: List ,
+        videos: List<Video>,
         onProgress: (Int, Int, String) -> Unit
     ): List<DuplicateGroup> = withContext(Dispatchers.Default) {
         val md5Groups = findVideoMD5Duplicates(videos, onProgress).associateBy { it.id }
@@ -272,7 +272,7 @@ class VideoViewModel @Inject constructor(
         images: List<Image>,
         onProgress: (Int, Int, String) -> Unit
     ): List<DuplicateGroup> = withContext(Dispatchers.Default) {
-        val groups = mutableMapOf<String, MutableList >()
+        val groups = mutableMapOf<String, MutableList<Image>>()
 
         images.forEachIndexed { index, image ->
             onProgress(index, images.size, image.name)

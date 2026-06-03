@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vidremover.domain.model.DuplicateGroup
 import com.vidremover.domain.model.Video
-import com.vidremover.domain.repository.VideoRepository
+import com.vidremover.domain.repository.MediaRepository
 import com.vidremover.domain.usecase.DeleteVideosUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,7 +15,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ResultsViewModel @Inject constructor(
-    private val repository: VideoRepository,
+    private val repository: MediaRepository,
     private val deleteVideosUseCase: DeleteVideosUseCase,
     private val duplicateStateHolder: DuplicateStateHolder
 ) : ViewModel() {

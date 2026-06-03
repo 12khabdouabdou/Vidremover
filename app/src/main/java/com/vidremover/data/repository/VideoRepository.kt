@@ -22,11 +22,11 @@ class VideoRepository @Inject constructor(
     private val computePHashUseCase: ComputePHashUseCase
 ) : MediaRepository {
 
-    override suspend fun getAllVideos(): List = withContext(Dispatchers.IO) {
+    override suspend fun getAllVideos(): List<Video> = withContext(Dispatchers.IO) {
         dataSource.queryVideos().map { it.toDomain() }
     }
 
-    override suspend fun getVideosFromFolders(folders: List<String>): List = withContext(Dispatchers.IO) {
+    override suspend fun getVideosFromFolders(folders: List<String>): List<Video> = withContext(Dispatchers.IO) {
         dataSource.queryVideosFromFolders(folders).map { it.toDomain() }
     }
 
