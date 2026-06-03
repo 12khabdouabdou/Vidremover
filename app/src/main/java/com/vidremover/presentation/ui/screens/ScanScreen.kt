@@ -30,6 +30,7 @@ fun ScanScreen(
     val isScanning by viewModel.isScanning.collectAsState()
     val scanProgress by viewModel.scanProgress.collectAsState()
     val duplicateGroups by viewModel.duplicateGroups.collectAsState()
+    val mediaType by viewModel.mediaType.collectAsState()
 
     val progress by animateFloatAsState(
         targetValue = if (scanProgress.total > 0) {
@@ -96,7 +97,7 @@ fun ScanScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    text = "${scanProgress.current} / ${scanProgress.total} videos",
+                    text = "${scanProgress.current} / ${scanProgress.total} ${if (mediaType == com.vidremover.domain.usecase.MediaType.IMAGES) "images" else "videos"}",
                     style = MaterialTheme.typography.bodyLarge
                 )
 
