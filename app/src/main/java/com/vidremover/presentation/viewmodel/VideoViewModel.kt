@@ -232,17 +232,6 @@ class VideoViewModel @Inject constructor(
 
         groups
     }
-        }
-
-        groups.filter { it.value.size > 1 }
-            .map { (hash, videoList) ->
-                DuplicateGroup(
-                    id = "phash_$hash",
-                    videos = videoList.sortedByDescending { it.size },
-                    similarity = _pHashThreshold.value
-                )
-            }
-    }
 
     private suspend fun findVideoBothDuplicates(
         videos: List ,
@@ -308,25 +297,50 @@ class VideoViewModel @Inject constructor(
         images: List<Image>,
         onProgress: (Int, Int, String) -> Unit
     ): List<DuplicateGroup> = withContext(Dispatchers.Default) {
-        val groups = mutableMapOf<String, MutableList >()
+        val hashes = mutableListOf<Pair<Image, String>>()
 
         images.forEachIndexed { index, image ->
             onProgress(index, images.size, image.name)
             try {
                 val hash = computeImagePHash(image)
-                groups.getOrPut(hash) { mutableListOf() }.add(image)
+                hashes.add(image to hash)
             } catch (e: Exception) {
             }
         }
 
-        groups.filter { it.value.size > 1 }
-            .map { (hash, videoList) ->
-                DuplicateGroup(
-                    id = "phash_$hash",
-                    videos = videoList.sortedByDescending { it.size },
-                    similarity = _pHashThreshold.value
+        val visited = BooleanArray(hashes.size)
+        val groups = mutableListOf<DuplicateGroup>()
+        val threshold = _pHashThreshold.value
+
+        for (i in hashes.indices) {
+            if (visited[i]) continue
+            visited[i] = true
+
+            val (image1, hash1) = hashes[i]
+            val currentGroup = mutableListOf(image1)
+
+            for (j in i + 1 until hashes.size) {
+                if (visited[j]) continue
+
+                val (image2, hash2) = hashes[j]
+                if (computePHashUseCase.compareHashes(hash1, hash2) >= threshold) {
+                    currentGroup.add(image2)
+                    visited[j] = true
+                }
+            }
+
+            if (currentGroup.size > 1) {
+                groups.add(
+                    DuplicateGroup(
+                        id = "phash_${hash1.take(10)}_${System.currentTimeMillis()}",
+                        videos = currentGroup.sortedByDescending { it.size },
+                        similarity = threshold
+                    )
                 )
             }
+        }
+
+        groups
     }
 
     private suspend fun findImageBothDuplicates(
@@ -375,7 +389,7 @@ class VideoViewModel @Inject constructor(
         return try {
             val file = java.io.File(image.path)
             if (!file.exists()) return image.id.toString()
-            image.path.hashCode().toString(16)
+            computePHashUseCase.computeImagePHash(file) ?: image.id.toString()
         } catch (e: Exception) {
             image.id.toString()
         }

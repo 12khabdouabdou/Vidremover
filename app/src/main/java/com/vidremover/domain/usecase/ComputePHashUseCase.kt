@@ -208,6 +208,47 @@ class ComputePHashUseCase @Inject constructor() {
     }
 
     /**
+     * Computes perceptual hash for a single image file.
+     * 
+     * @param file The image file
+     * @return 64-bit hash string in hexadecimal format, or null if decoding fails
+     */
+    fun computeImagePHash(file: File): String? {
+        return try {
+            val options = BitmapFactory.Options()
+            options.inPreferredConfig = Bitmap.Config.ARGB_8888
+            
+            // To prevent OOM, we could sample it, but decoding directly is usually okay if we scale it, 
+            // but BitmapFactory.decodeFile decodes full size. 
+            // Let's decode with inSampleSize
+            options.inJustDecodeBounds = true
+            BitmapFactory.decodeFile(file.absolutePath, options)
+            
+            val reqWidth = FRAME_DOWNSCALE_WIDTH
+            val reqHeight = FRAME_DOWNSCALE_HEIGHT
+            var inSampleSize = 1
+            if (options.outHeight > reqHeight || options.outWidth > reqWidth) {
+                val halfHeight = options.outHeight / 2
+                val halfWidth = options.outWidth / 2
+                while (halfHeight / inSampleSize >= reqHeight && halfWidth / inSampleSize >= reqWidth) {
+                    inSampleSize *= 2
+                }
+            }
+            
+            options.inJustDecodeBounds = false
+            options.inSampleSize = inSampleSize
+            
+            val bitmap = BitmapFactory.decodeFile(file.absolutePath, options) ?: return null
+            val hash = computeFramePHash(bitmap)
+            bitmap.recycle()
+            hash
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to compute image pHash for ${file.absolutePath}", e)
+            null
+        }
+    }
+
+    /**
      * Computes perceptual hash for a single bitmap frame.
      *
      * Implements the simplified pHash algorithm:
