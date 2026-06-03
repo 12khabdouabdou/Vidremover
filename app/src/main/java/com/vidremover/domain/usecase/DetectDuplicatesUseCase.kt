@@ -133,7 +133,7 @@ class DetectDuplicatesUseCase @Inject constructor(
         threshold: Float,
         onProgress: ((current: Int, total: Int, filename: String) -> Unit)?
     ): List<DuplicateGroup> {
-        val hashMap = mutableMapOf<String, MutableList<Video>>()
+        val hashes = mutableListOf<Pair<Video, String>>()
         val total = videos.size
 
         videos.forEachIndexed { index, video ->
@@ -141,22 +141,44 @@ class DetectDuplicatesUseCase @Inject constructor(
 
             try {
                 val hash = computePHash(video, threshold)
-                hashMap.getOrPut(hash) { mutableListOf() }.add(video)
+                hashes.add(video to hash)
             } catch (e: Exception) {
                 Log.w(TAG, "Failed to compute pHash for video: ${video.name}", e)
             }
         }
 
-        return hashMap
-            .filter { it.value.size > 1 }
-            .map { (hash, videoList) ->
-                DuplicateGroup(
-                    id = "phash_$hash",
-                    videos = videoList.sortedByDescending { it.size },
-                    similarity = threshold
+        val visited = BooleanArray(hashes.size)
+        val groups = mutableListOf<DuplicateGroup>()
+
+        for (i in hashes.indices) {
+            if (visited[i]) continue
+            visited[i] = true
+
+            val (video1, hash1) = hashes[i]
+            val currentGroup = mutableListOf(video1)
+
+            for (j in i + 1 until hashes.size) {
+                if (visited[j]) continue
+
+                val (video2, hash2) = hashes[j]
+                if (computePHash.compareHashes(hash1, hash2) >= threshold) {
+                    currentGroup.add(video2)
+                    visited[j] = true
+                }
+            }
+
+            if (currentGroup.size > 1) {
+                groups.add(
+                    DuplicateGroup(
+                        id = "phash_${hash1.take(10)}_${System.currentTimeMillis()}",
+                        videos = currentGroup.sortedByDescending { it.size },
+                        similarity = threshold
+                    )
                 )
             }
-            .sortedByDescending { it.videos.size }
+        }
+
+        return groups.sortedByDescending { it.videos.size }
     }
 
     /**

@@ -132,18 +132,30 @@ class ComputePHashUseCase @Inject constructor() {
         try {
             retriever.setDataSource(file.absolutePath)
 
-            // Calculate frame positions to sample
-            val positions = if (durationMs <= 0 || durationMs < FRAME_SAMPLE_COUNT * 1000) {
-                // Short video: just extract at beginning
-                listOf(0L)
-            } else {
-                // Sample frames at regular intervals
+            // To detect duration-cut videos, we sample both at relative intervals AND fixed absolute intervals
+            val positions = mutableSetOf<Long>()
+            
+            if (durationMs > 0) {
+                // Relative intervals (useful for intact videos or scaled videos)
                 val step = durationMs / (FRAME_SAMPLE_COUNT + 1)
-                (1..FRAME_SAMPLE_COUNT).map { it * step }
+                for (i in 1..FRAME_SAMPLE_COUNT) {
+                    positions.add(i * step)
+                }
+                
+                // Absolute intervals (useful for trimmed/cut videos)
+                // Sample at 1s, 2s, 3s, 5s if duration allows
+                val absoluteSecs = listOf(1000L, 2000L, 3000L, 5000L)
+                for (absMs in absoluteSecs) {
+                    if (absMs < durationMs) {
+                        positions.add(absMs)
+                    }
+                }
+            } else {
+                positions.add(0L)
             }
 
             // Extract and hash each frame
-            for (positionMs in positions) {
+            for (positionMs in positions.sorted()) {
                 val frameHash = extractAndHashFrame(retriever, positionMs * 1000) // Convert to microseconds
                 if (frameHash != null) {
                     hashes.add(frameHash)
@@ -287,10 +299,9 @@ class ComputePHashUseCase @Inject constructor() {
      * @return Combined hash string
      */
     private fun combineFrameHashes(frameHashes: List<String>): String {
-        val combined = frameHashes.joinToString("")
-        val digest = MessageDigest.getInstance("MD5")
-        digest.update(combined.toByteArray())
-        return digest.digest().joinToString("") { "%02x".format(it) }
+        // Instead of a cryptographic hash which destroys perceptual similarity,
+        // we join the hashes with a delimiter so we can compare individual frames later.
+        return frameHashes.joinToString("-")
     }
 
     /**
@@ -303,14 +314,63 @@ class ComputePHashUseCase @Inject constructor() {
      * @return Similarity score between 0.0 and 1.0
      */
     fun compareHashes(hash1: String, hash2: String): Float {
-        if (hash1.length != hash2.length) return 0.0f
-
-        var differences = 0
-        for (i in hash1.indices) {
-            if (hash1[i] != hash2[i]) differences++
+        // Fallback for legacy MD5 hashes (no delimiter, typically 32 chars)
+        if (!hash1.contains("-") || !hash2.contains("-")) {
+            if (hash1.length != hash2.length) return 0.0f
+            var differences = 0
+            for (i in hash1.indices) {
+                if (hash1[i] != hash2[i]) differences++
+            }
+            return 1.0f - (differences.toFloat() / hash1.length)
         }
 
-        return 1.0f - (differences.toFloat() / hash1.length)
+        val frames1 = hash1.split("-").filter { it.isNotEmpty() }
+        val frames2 = hash2.split("-").filter { it.isNotEmpty() }
+        
+        if (frames1.isEmpty() || frames2.isEmpty()) return 0.0f
+
+        // To support cut/trimmed videos, we want to find if there are highly matching frames.
+        // We find the max similarity for each frame in video 1 against any frame in video 2.
+        var totalSimilarity1 = 0.0f
+        for (f1 in frames1) {
+            var bestFrameSim = 0.0f
+            for (f2 in frames2) {
+                val sim = compareSingleFrame(f1, f2)
+                if (sim > bestFrameSim) {
+                    bestFrameSim = sim
+                }
+            }
+            totalSimilarity1 += bestFrameSim
+        }
+        
+        // Similarly check from frames2 to frames1
+        var totalSimilarity2 = 0.0f
+        for (f2 in frames2) {
+            var bestFrameSim = 0.0f
+            for (f1 in frames1) {
+                val sim = compareSingleFrame(f1, f2)
+                if (sim > bestFrameSim) {
+                    bestFrameSim = sim
+                }
+            }
+            totalSimilarity2 += bestFrameSim
+        }
+        
+        val avgSim1 = totalSimilarity1 / frames1.size
+        val avgSim2 = totalSimilarity2 / frames2.size
+        
+        // Return the max of the averages, allowing trimmed videos to match fully
+        // if one is a sub-clip of the other.
+        return maxOf(avgSim1, avgSim2)
+    }
+
+    private fun compareSingleFrame(f1: String, f2: String): Float {
+        if (f1.length != f2.length || f1.isEmpty()) return 0.0f
+        var diff = 0
+        for (i in f1.indices) {
+            if (f1[i] != f2[i]) diff++
+        }
+        return 1.0f - (diff.toFloat() / f1.length)
     }
 
     /**

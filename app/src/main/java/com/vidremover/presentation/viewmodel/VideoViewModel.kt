@@ -184,18 +184,54 @@ class VideoViewModel @Inject constructor(
     }
 
     private suspend fun findVideopHashDuplicates(
-        videos: List ,
+        videos: List<Video>,
         onProgress: (Int, Int, String) -> Unit
     ): List<DuplicateGroup> = withContext(Dispatchers.Default) {
-        val groups = mutableMapOf<String, MutableList >()
+        val hashes = mutableListOf<Pair<Video, String>>()
 
         videos.forEachIndexed { index, video ->
             onProgress(index, videos.size, video.name)
             try {
                 val hash = computePHashUseCase(video)
-                groups.getOrPut(hash) { mutableListOf() }.add(video)
+                hashes.add(video to hash)
             } catch (e: Exception) {
             }
+        }
+
+        val visited = BooleanArray(hashes.size)
+        val groups = mutableListOf<DuplicateGroup>()
+        val threshold = _pHashThreshold.value
+
+        for (i in hashes.indices) {
+            if (visited[i]) continue
+            visited[i] = true
+
+            val (video1, hash1) = hashes[i]
+            val currentGroup = mutableListOf(video1)
+
+            for (j in i + 1 until hashes.size) {
+                if (visited[j]) continue
+
+                val (video2, hash2) = hashes[j]
+                if (computePHashUseCase.compareHashes(hash1, hash2) >= threshold) {
+                    currentGroup.add(video2)
+                    visited[j] = true
+                }
+            }
+
+            if (currentGroup.size > 1) {
+                groups.add(
+                    DuplicateGroup(
+                        id = "phash_${hash1.take(10)}_${System.currentTimeMillis()}",
+                        videos = currentGroup.sortedByDescending { it.size },
+                        similarity = threshold
+                    )
+                )
+            }
+        }
+
+        groups
+    }
         }
 
         groups.filter { it.value.size > 1 }
