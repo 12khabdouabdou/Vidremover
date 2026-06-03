@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentSender
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
@@ -589,6 +590,11 @@ private fun ImageItem(
     onToggle: () -> Unit
 ) {
     val context = LocalContext.current
+    var thumbnail by remember(image.uri) { mutableStateOf<Bitmap?>(null) }
+
+    LaunchedEffect(image.uri) {
+        thumbnail = loadImageThumbnail(context, image.uri)
+    }
     
     Card(
         modifier = Modifier
@@ -623,14 +629,23 @@ private fun ImageItem(
                         context.startActivity(Intent.createChooser(intent, "View image"))
                     }
             ) {
-                Icon(
-                    imageVector = Icons.Default.Image,
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(40.dp)
-                        .align(Alignment.Center),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                if (thumbnail != null) {
+                    Image(
+                        bitmap = thumbnail!!.asImageBitmap(),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Image,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(40.dp)
+                            .align(Alignment.Center),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.width(12.dp))
@@ -669,6 +684,33 @@ private fun ImageItem(
                 checked = isSelected,
                 onCheckedChange = { onToggle() }
             )
+        }
+    }
+}
+
+
+private suspend fun loadImageThumbnail(context: Context, uriString: String): Bitmap? {
+    return kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        try {
+            val uri = Uri.parse(uriString)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                context.contentResolver.loadThumbnail(uri, android.util.Size(320, 240), null)
+            } else {
+                val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                context.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, options) }
+                var inSampleSize = 1
+                if (options.outHeight > 240 || options.outWidth > 320) {
+                    val halfHeight = options.outHeight / 2
+                    val halfWidth = options.outWidth / 2
+                    while (halfHeight / inSampleSize >= 240 && halfWidth / inSampleSize >= 320) {
+                        inSampleSize *= 2
+                    }
+                }
+                val decodeOptions = BitmapFactory.Options().apply { this.inSampleSize = inSampleSize }
+                context.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, decodeOptions) }
+            }
+        } catch (e: Exception) {
+            null
         }
     }
 }
