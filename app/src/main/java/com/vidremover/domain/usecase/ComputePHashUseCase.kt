@@ -4,6 +4,8 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.media.MediaMetadataRetriever
+import android.content.Context
+import android.net.Uri
 import android.util.Log
 import com.vidremover.domain.model.Video
 import kotlinx.coroutines.Dispatchers
@@ -355,14 +357,9 @@ class ComputePHashUseCase @Inject constructor() {
      * @return Similarity score between 0.0 and 1.0
      */
     fun compareHashes(hash1: String, hash2: String): Float {
-        // Fallback for legacy MD5 hashes (no delimiter, typically 32 chars)
+        // Fallback for single frames or legacy MD5 hashes
         if (!hash1.contains("-") || !hash2.contains("-")) {
-            if (hash1.length != hash2.length) return 0.0f
-            var differences = 0
-            for (i in hash1.indices) {
-                if (hash1[i] != hash2[i]) differences++
-            }
-            return 1.0f - (differences.toFloat() / hash1.length)
+            return compareSingleFrame(hash1, hash2)
         }
 
         val frames1 = hash1.split("-").filter { it.isNotEmpty() }
@@ -407,11 +404,20 @@ class ComputePHashUseCase @Inject constructor() {
 
     private fun compareSingleFrame(f1: String, f2: String): Float {
         if (f1.length != f2.length || f1.isEmpty()) return 0.0f
-        var diff = 0
+        var bitDifferences = 0
         for (i in f1.indices) {
-            if (f1[i] != f2[i]) diff++
+            try {
+                val val1 = f1[i].toString().toInt(16)
+                val val2 = f2[i].toString().toInt(16)
+                val xor = val1 xor val2
+                // Count set bits in the XOR result (which represent differing bits)
+                bitDifferences += Integer.bitCount(xor)
+            } catch (e: Exception) {
+                if (f1[i] != f2[i]) bitDifferences += 4 // Assume max difference for non-hex chars
+            }
         }
-        return 1.0f - (diff.toFloat() / f1.length)
+        val totalBits = f1.length * 4
+        return 1.0f - (bitDifferences.toFloat() / totalBits)
     }
 
     /**

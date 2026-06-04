@@ -81,7 +81,7 @@ class ComputeMD5HashUseCase @Inject constructor() {
             }
 
             // Convert digest to hex string
-            digest.digest().joinToString("") { byte -> "%02x".format(byte) }
+            digest.digest().joinToString("") { byte -> "%02x".format(byte.toInt() and 0xFF) }
 
         } catch (e: FileNotFoundException) {
             Log.e(TAG, "File not found for video ${video.id}", e)

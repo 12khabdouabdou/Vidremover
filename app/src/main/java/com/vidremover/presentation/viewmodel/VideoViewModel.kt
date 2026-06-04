@@ -1,5 +1,6 @@
 package com.vidremover.presentation.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vidremover.domain.model.DuplicateGroup
@@ -24,6 +25,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class VideoViewModel @Inject constructor(
+    @dagger.hilt.android.qualifiers.ApplicationContext private val context: Context,
     private val repository: MediaRepository,
     private val computeMD5HashUseCase: ComputeMD5HashUseCase,
     private val computePHashUseCase: ComputePHashUseCase,
@@ -379,7 +381,7 @@ class VideoViewModel @Inject constructor(
                     digest.update(buffer, 0, bytesRead)
                 }
             }
-            digest.digest().joinToString("") { byte -> "%02x".format(byte) }
+            digest.digest().joinToString("") { byte -> "%02x".format(byte.toInt() and 0xFF) }
         } catch (e: Exception) {
             image.id.toString()
         }
@@ -387,9 +389,7 @@ class VideoViewModel @Inject constructor(
 
     private fun computeImagePHash(image: Image): String {
         return try {
-            val file = java.io.File(image.path)
-            if (!file.exists()) return image.id.toString()
-            computePHashUseCase.computeImagePHash(file) ?: image.id.toString()
+            computePHashUseCase.computeImagePHash(context, image.uri) ?: image.id.toString()
         } catch (e: Exception) {
             image.id.toString()
         }
