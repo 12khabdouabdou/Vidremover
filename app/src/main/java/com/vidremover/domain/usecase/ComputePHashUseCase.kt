@@ -215,16 +215,16 @@ class ComputePHashUseCase @Inject constructor() {
      * @param file The image file
      * @return 64-bit hash string in hexadecimal format, or null if decoding fails
      */
-    fun computeImagePHash(file: File): String? {
+    fun computeImagePHash(context: Context, uriString: String): String? {
         return try {
+            val uri = Uri.parse(uriString)
             val options = BitmapFactory.Options()
             options.inPreferredConfig = Bitmap.Config.ARGB_8888
-            
-            // To prevent OOM, we could sample it, but decoding directly is usually okay if we scale it, 
-            // but BitmapFactory.decodeFile decodes full size. 
-            // Let's decode with inSampleSize
             options.inJustDecodeBounds = true
-            BitmapFactory.decodeFile(file.absolutePath, options)
+            
+            context.contentResolver.openInputStream(uri)?.use { 
+                BitmapFactory.decodeStream(it, null, options) 
+            }
             
             val reqWidth = FRAME_DOWNSCALE_WIDTH
             val reqHeight = FRAME_DOWNSCALE_HEIGHT
@@ -240,12 +240,15 @@ class ComputePHashUseCase @Inject constructor() {
             options.inJustDecodeBounds = false
             options.inSampleSize = inSampleSize
             
-            val bitmap = BitmapFactory.decodeFile(file.absolutePath, options) ?: return null
+            val bitmap = context.contentResolver.openInputStream(uri)?.use {
+                BitmapFactory.decodeStream(it, null, options)
+            } ?: return null
+            
             val hash = computeFramePHash(bitmap)
             bitmap.recycle()
             hash
         } catch (e: Exception) {
-            Log.w(TAG, "Failed to compute image pHash for ${file.absolutePath}", e)
+            Log.w(TAG, "Failed to compute image pHash for $uriString", e)
             null
         }
     }
