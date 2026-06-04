@@ -239,23 +239,15 @@ class VideoViewModel @Inject constructor(
         videos: List<Video>,
         onProgress: (Int, Int, String) -> Unit
     ): List<DuplicateGroup> = withContext(Dispatchers.Default) {
-        val md5Groups = findVideoMD5Duplicates(videos, onProgress).associateBy { it.id }
-        val pHashGroups = findVideopHashDuplicates(videos, onProgress).associateBy { it.id }
-
-        val allGroups = (md5Groups.values + pHashGroups.values)
-            .flatMap { it.videos }
-            .groupBy { it.id }
-            .map { (_, videoList) ->
-                val bestSimilarity = if (md5Groups.containsKey("md5_${videoList.firstOrNull()?.id}")) 1.0f else _pHashThreshold.value
-                DuplicateGroup(
-                    id = videoList.first().id.toString(),
-                    videos = videoList.distinctBy { it.id }.sortedByDescending { it.size },
-                    similarity = bestSimilarity
-                )
-            }
-            .filter { it.videos.size > 1 }
-
-        allGroups
+        val md5Groups = findVideoMD5Duplicates(videos, onProgress)
+        val videosInMD5 = md5Groups.flatMap { it.videos }.map { it.id }.toSet()
+        val remainingVideos = videos.filter { it.id !in videosInMD5 }
+        
+        val pHashGroups = if (remainingVideos.isNotEmpty()) {
+            findVideopHashDuplicates(remainingVideos, onProgress)
+        } else emptyList()
+        
+        (md5Groups + pHashGroups).sortedByDescending { it.videos.size }
     }
 
     private suspend fun findImageDuplicates(
@@ -349,23 +341,15 @@ class VideoViewModel @Inject constructor(
         images: List<Image>,
         onProgress: (Int, Int, String) -> Unit
     ): List<DuplicateGroup> = withContext(Dispatchers.Default) {
-        val md5Groups = findImageMD5Duplicates(images, onProgress).associateBy { it.id }
-        val pHashGroups = findImagepHashDuplicates(images, onProgress).associateBy { it.id }
-
-        val allGroups = (md5Groups.values + pHashGroups.values)
-            .flatMap { it.videos }
-            .groupBy { it.id }
-            .map { (_, videoList) ->
-                val bestSimilarity = if (md5Groups.containsKey("md5_${videoList.firstOrNull()?.id}")) 1.0f else _pHashThreshold.value
-                DuplicateGroup(
-                    id = videoList.first().id.toString(),
-                    videos = videoList.distinctBy { it.id }.sortedByDescending { it.size },
-                    similarity = bestSimilarity
-                )
-            }
-            .filter { it.videos.size > 1 }
-
-        allGroups
+        val md5Groups = findImageMD5Duplicates(images, onProgress)
+        val imagesInMD5 = md5Groups.flatMap { it.videos }.map { it.id }.toSet()
+        val remainingImages = images.filter { it.id !in imagesInMD5 }
+        
+        val pHashGroups = if (remainingImages.isNotEmpty()) {
+            findImagepHashDuplicates(remainingImages, onProgress)
+        } else emptyList()
+        
+        (md5Groups + pHashGroups).sortedByDescending { it.videos.size }
     }
 
     private fun computeImageMD5Hash(image: Image): String {

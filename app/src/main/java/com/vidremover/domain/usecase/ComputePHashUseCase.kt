@@ -407,16 +407,31 @@ class ComputePHashUseCase @Inject constructor() {
 
     private fun compareSingleFrame(f1: String, f2: String): Float {
         if (f1.length != f2.length || f1.isEmpty()) return 0.0f
+        
+        if (f1.length == 16) {
+            try {
+                val val1 = java.lang.Long.parseUnsignedLong(f1, 16)
+                val val2 = java.lang.Long.parseUnsignedLong(f2, 16)
+                val xor = val1 xor val2
+                val bitDifferences = java.lang.Long.bitCount(xor)
+                return 1.0f - (bitDifferences.toFloat() / 64.0f)
+            } catch (e: Exception) {
+                // Fallback
+            }
+        }
+        
         var bitDifferences = 0
         for (i in f1.indices) {
             try {
-                val val1 = f1[i].toString().toInt(16)
-                val val2 = f2[i].toString().toInt(16)
-                val xor = val1 xor val2
-                // Count set bits in the XOR result (which represent differing bits)
-                bitDifferences += Integer.bitCount(xor)
+                val val1 = Character.digit(f1[i], 16)
+                val val2 = Character.digit(f2[i], 16)
+                if (val1 >= 0 && val2 >= 0) {
+                    bitDifferences += Integer.bitCount(val1 xor val2)
+                } else {
+                    if (f1[i] != f2[i]) bitDifferences += 4
+                }
             } catch (e: Exception) {
-                if (f1[i] != f2[i]) bitDifferences += 4 // Assume max difference for non-hex chars
+                if (f1[i] != f2[i]) bitDifferences += 4 
             }
         }
         val totalBits = f1.length * 4
